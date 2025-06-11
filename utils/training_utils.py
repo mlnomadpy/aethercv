@@ -8,13 +8,13 @@ from flax import nnx
 from jax.sharding import NamedSharding, PartitionSpec as P
 
 # Imports from this project
-from aethercv.utils.config import (
+from utils.config import (
     DATASET_CONFIGS, _global_num_epochs, _global_eval_every, _global_batch_size, mesh
 )
 # Import model classes by their names to avoid circular dependencies if utils are imported by models
 # This requires models to be available in the python path, e.g. via aethercv.models.cnn or aethercv.models.resnet
-from aethercv.models.cnn import YatCNN, LinearCNN
-from aethercv.models.resnet import YatResNet, LinearResNet
+from models.cnn import YatCNN, LinearCNN
+from models.resnet import YatResNet, LinearResNet
 
 def loss_fn(model, batch):
   # batch['image'] is already sharded if called from train_step/eval_step

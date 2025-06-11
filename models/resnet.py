@@ -7,7 +7,7 @@ from flax import nnx
 from flax.nnx.nn import initializers
 
 # Imports from this project
-from aethercv.utils.config import mesh, P, NamedSharding, default_kernel_init, default_bias_init, default_alpha_init
+from utils.config import mesh, P, NamedSharding, default_kernel_init, default_bias_init, default_alpha_init
 
 # Custom layer imports
 from nmn.nnx.nmn import YatNMN

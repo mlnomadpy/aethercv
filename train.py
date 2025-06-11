@@ -12,9 +12,9 @@ import jax # jax import should be before flax.nnx typically
 logging.getLogger('tensorflow').setLevel(logging.ERROR)
 
 # Import from new modularized components
-from aethercv.utils.config import DATASET_CONFIGS, mesh # mesh is initialized in config.py
-from aethercv.utils.training_utils import _train_model_loop
-from aethercv.utils.analysis_utils import (
+from utils.config import DATASET_CONFIGS, mesh # mesh is initialized in config.py
+from utils.training_utils import _train_model_loop
+from utils.analysis_utils import (
     compare_training_curves,
     print_final_metrics_comparison_all,
     analyze_convergence_all,
@@ -26,7 +26,7 @@ from aethercv.utils.analysis_utils import (
     saliency_map_analysis_all
 )
 # Import new advanced analysis methods
-from aethercv.utils.advanced_explainability import (
+from utils.advanced_explainability import (
     guided_backprop_all,
     integrated_gradients_all,
     feature_space_visualization_all,
@@ -35,14 +35,14 @@ from aethercv.utils.advanced_explainability import (
     model_decision_boundary_comparison,
     prediction_uncertainty_analysis_all
 )
-from aethercv.utils.robustness_analysis import (
+from utils.robustness_analysis import (
     adversarial_robustness_analysis_all,
     noise_robustness_analysis_all,
     out_of_distribution_detection_all,
     computational_efficiency_analysis_all,
     model_complexity_analysis_all
 )
-from aethercv.utils.interpretability_methods import (
+from utils.interpretability_methods import (
     filter_similarity_analysis_all,
     feature_attribution_analysis_all,
     information_flow_analysis_all,

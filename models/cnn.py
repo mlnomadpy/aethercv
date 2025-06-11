@@ -7,7 +7,7 @@ from flax import nnx
 # Imports from this project
 # This assumes 'c:\Users\tahab\Documents\github\aetherlm' is in PYTHONPATH
 # or the execution context allows 'aethercv' to be resolved as a top-level package.
-from aethercv.utils.config import mesh, P, NamedSharding, default_kernel_init, default_bias_init, default_alpha_init
+from utils.config import mesh, P, NamedSharding, default_kernel_init, default_bias_init, default_alpha_init
 
 # Custom layer imports (assuming they are in PYTHONPATH or relative)
 # Ensure these paths are correct relative to the project structure or PYTHONPATH
