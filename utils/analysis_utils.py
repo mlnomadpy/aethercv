@@ -1,19 +1,28 @@
 import typing as tp
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import jax
 import jax.numpy as jnp
 from flax import nnx
 from functools import partial
+import os
+from datetime import datetime
 
 # Assuming test_ds_iter is a tf.data.Dataset iterator that yields batches of numpy arrays
 # and class_names is a list of strings.
 
 Array = jax.Array # For type hinting if JAX arrays are directly handled
 
-def compare_training_curves(histories_list: list[dict], model_names_list: list[str]):
+# Create directory for saving visualizations
+def create_viz_directory():
+    """Create a directory for saving visualizations with timestamp"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    viz_dir = f"visualizations_{timestamp}"
+    os.makedirs(viz_dir, exist_ok=True)
+    return viz_dir
+
+def compare_training_curves(histories_list: list[dict], model_names_list: list[str], save_dir: str = None):
     num_models = len(histories_list)
     if num_models == 0 or len(model_names_list) != num_models:
         print("Error: Invalid input for compare_training_curves. Ensure histories_list and model_names_list are non-empty and have matching lengths.")
@@ -52,15 +61,25 @@ def compare_training_curves(histories_list: list[dict], model_names_list: list[s
         if history.get('train_accuracy') and len(history['train_accuracy']) >= min_steps:
             ax3.plot(steps_range, history['train_accuracy'][:min_steps], color=color, linestyle=linestyle, label=model_name, linewidth=2)
         if history.get('test_accuracy') and len(history['test_accuracy']) >= min_steps:
-            ax4.plot(steps_range, history['test_accuracy'][:min_steps], color=color, linestyle=linestyle, label=model_name, linewidth=2)
-
-    ax1.set_title('Training Loss', fontweight='bold'); ax1.set_xlabel('Evaluation Steps'); ax1.set_ylabel('Loss'); ax1.legend(); ax1.grid(True, alpha=0.3)
+            ax4.plot(steps_range, history['test_accuracy'][:min_steps], color=color, linestyle=linestyle, label=model_name, linewidth=2)    
+            ax1.set_title('Training Loss', fontweight='bold'); ax1.set_xlabel('Evaluation Steps'); ax1.set_ylabel('Loss'); ax1.legend(); ax1.grid(True, alpha=0.3)
     ax2.set_title('Test Loss', fontweight='bold'); ax2.set_xlabel('Evaluation Steps'); ax2.set_ylabel('Loss'); ax2.legend(); ax2.grid(True, alpha=0.3)
     ax3.set_title('Training Accuracy', fontweight='bold'); ax3.set_xlabel('Evaluation Steps'); ax3.set_ylabel('Accuracy'); ax3.legend(); ax3.grid(True, alpha=0.3)
     ax4.set_title('Test Accuracy', fontweight='bold'); ax4.set_xlabel('Evaluation Steps'); ax4.set_ylabel('Accuracy'); ax4.legend(); ax4.grid(True, alpha=0.3)
 
-    plt.tight_layout(rect=[0, 0, 1, 0.96]); plt.show()
-    print("📈 Training curves comparison plotted successfully for all models!")
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    
+    # Save the plot
+    if save_dir is None:
+        save_dir = create_viz_directory()
+    
+    training_curves_dir = os.path.join(save_dir, "training_curves")
+    os.makedirs(training_curves_dir, exist_ok=True)
+    filename = "training_curves_comparison.png"
+    filepath = os.path.join(training_curves_dir, filename)
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"📈 Training curves comparison saved to: {filepath}")
 
 def print_final_metrics_comparison_all(histories_list: list[dict], model_names_list: list[str]):
     num_models = len(histories_list)
@@ -250,7 +269,7 @@ def detailed_test_evaluation_all(models_list: list[nnx.Module], model_names_list
 
     return predictions_package
 
-def plot_confusion_matrices_all(predictions_package: dict):
+def plot_confusion_matrices_all(predictions_package: dict, save_dir: str = None):
     all_predictions = predictions_package.get('all_predictions')
     true_labels = predictions_package.get('true_labels')
     class_names = predictions_package.get('class_names')
@@ -279,24 +298,45 @@ def plot_confusion_matrices_all(predictions_package: dict):
             if i < len(axes_flat):
                 axes_flat[i].set_title(f'{model_name} - No Data')
                 axes_flat[i].axis('off')
-            continue
-
+            continue        
         model_preds = all_predictions[model_name]
         cm = confusion_matrix(true_labels, model_preds)
 
         ax = axes_flat[i]
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names, yticklabels=class_names, ax=ax, cbar=False)
+        # Replace seaborn heatmap with matplotlib imshow
+        im = ax.imshow(cm, interpolation='nearest', cmap='Blues')
         ax.set_title(f'{model_name} - CM', fontweight='bold')
         ax.set_xlabel('Predicted Label')
         ax.set_ylabel('True Label')
-
-    for j in range(num_models, len(axes_flat)):
-        fig.delaxes(axes_flat[j])
+        
+        # Add text annotations
+        for j in range(cm.shape[0]):
+            for k in range(cm.shape[1]):
+                ax.text(k, j, str(cm[j, k]), ha='center', va='center', 
+                       color='white' if cm[j, k] > cm.max() / 2 else 'black')
+        
+        # Set tick labels
+        ax.set_xticks(range(len(class_names)))
+        ax.set_yticks(range(len(class_names)))
+        ax.set_xticklabels(class_names, rotation=45)
+        ax.set_yticklabels(class_names)    
+        for j in range(num_models, len(axes_flat)):
+            fig.delaxes(axes_flat[j])
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     fig.suptitle(f'Confusion Matrices for All {num_models} Models', fontsize=16, fontweight='bold')
-    plt.show()
-    print("📊 Confusion matrices plotted successfully for all models!")
+    
+    # Save the plot
+    if save_dir is None:
+        save_dir = create_viz_directory()
+    
+    confusion_matrix_dir = os.path.join(save_dir, "confusion_matrices")
+    os.makedirs(confusion_matrix_dir, exist_ok=True)
+    filename = "confusion_matrices_all_models.png"
+    filepath = os.path.join(confusion_matrix_dir, filename)
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"📊 Confusion matrices saved to: {filepath}")
 
 def generate_summary_report_all(histories_list: list[dict], model_names_list: list[str], predictions_package: dict):
     num_models = len(histories_list)
@@ -379,7 +419,7 @@ def generate_summary_report_all(histories_list: list[dict], model_names_list: li
 
     print("="*80)
 
-def visualize_kernels_all(models_list: list[nnx.Module], model_names_list: list[str], layer_name_map: dict[str, str], num_kernels_to_show=16):
+def visualize_kernels_all(models_list: list[nnx.Module], model_names_list: list[str], layer_name_map: dict[str, str], num_kernels_to_show=16, save_dir: str = None):
     num_models = len(models_list)
     if num_models == 0 or len(model_names_list) != num_models or len(layer_name_map) != num_models:
         print("Error: Invalid input for visualize_kernels_all.")
@@ -464,12 +504,25 @@ def visualize_kernels_all(models_list: list[nnx.Module], model_names_list: list[
                     min_val, max_val = np.min(kernel_slice), np.max(kernel_slice)
                     norm_slice = (kernel_slice - min_val) / (max_val - min_val + 1e-5) if (max_val - min_val) > 1e-5 else kernel_slice
                     ax.imshow(norm_slice, cmap='viridis', aspect='auto')
-                ax.set_title(f'Kernel {k_idx+1}'); ax.axis('off')
+                ax.set_title(f'Kernel {k_idx+1}'); ax.axis('off')            
+                for k_j in range(num_actual_kernels_shown, len(axes_k_flat)):
+                    fig_k.delaxes(axes_k_flat[k_j])
 
-            for k_j in range(num_actual_kernels_shown, len(axes_k_flat)):
-                fig_k.delaxes(axes_k_flat[k_j])
-
-            plt.tight_layout(rect=[0, 0, 1, 0.95]); plt.show()
+            plt.tight_layout(rect=[0, 0, 1, 0.95])
+            
+            # Save the plot
+            if save_dir is None:
+                save_dir = create_viz_directory()
+            
+            kernels_dir = os.path.join(save_dir, "kernels")
+            os.makedirs(kernels_dir, exist_ok=True)
+            safe_model_name = model_name.replace(" ", "_").replace("/", "_")
+            safe_layer_name = layer_name.replace(".", "_").replace("/", "_")
+            filename = f"kernels_{safe_model_name}_{safe_layer_name}.png"
+            filepath = os.path.join(kernels_dir, filename)
+            plt.savefig(filepath, dpi=300, bbox_inches='tight')
+            plt.close()
+            print(f"🖼️ Kernels for {model_name} saved to: {filepath}")
         except Exception as e_plot:
             print(f"Error during kernel plotting for model '{model_name}', layer '{layer_name}': {e_plot}")
 
@@ -491,7 +544,7 @@ def get_activation_maps(model, layer_name, input_sample, training=False):
         return None
 
 def activation_map_visualization_all(models_list: list[nnx.Module], model_names_list: list[str],
-                                     layer_name_map: dict[str, str], test_ds_iter, num_maps_to_show=16):
+                                     layer_name_map: dict[str, str], test_ds_iter, num_maps_to_show=16, save_dir: str = None):
     num_models = len(models_list)
     if num_models == 0 or len(model_names_list) != num_models or len(layer_name_map) != num_models:
         print("Error: Invalid input for activation_map_visualization_all.")
@@ -562,19 +615,32 @@ def activation_map_visualization_all(models_list: list[nnx.Module], model_names_
                 act_map_slice = activations_np_plot[:, :, m_idx]
                 if act_map_slice.size > 0:
                     ax.imshow(act_map_slice, cmap='viridis')
-                ax.set_title(f'Map {m_idx+1}'); ax.axis('off')
+                ax.set_title(f'Map {m_idx+1}'); ax.axis('off')            
+                for m_j in range(actual_maps_to_show, len(axes_am_flat)):
+                    fig_am.delaxes(axes_am_flat[m_j])
 
-            for m_j in range(actual_maps_to_show, len(axes_am_flat)):
-                fig_am.delaxes(axes_am_flat[m_j])
-
-            plt.tight_layout(rect=[0, 0, 1, 0.95]); plt.show()
+            plt.tight_layout(rect=[0, 0, 1, 0.95])
+            
+            # Save the plot
+            if save_dir is None:
+                save_dir = create_viz_directory()
+            
+            activations_dir = os.path.join(save_dir, "activation_maps")
+            os.makedirs(activations_dir, exist_ok=True)
+            safe_model_name = model_name.replace(" ", "_").replace("/", "_")
+            safe_layer_name = layer_name.replace(".", "_").replace("/", "_")
+            filename = f"activations_{safe_model_name}_{safe_layer_name}.png"
+            filepath = os.path.join(activations_dir, filename)
+            plt.savefig(filepath, dpi=300, bbox_inches='tight')
+            plt.close()
+            print(f"🗺️ Activation maps for {model_name} saved to: {filepath}")
         except Exception as e_plot:
             print(f"Error during activation map plotting for model '{model_name}', layer '{layer_name}': {e_plot}")
 
     print("\n🗺️ Activation map visualization attempt for all models complete.")
 
 
-def saliency_map_analysis_all(models_list: list[nnx.Module], model_names_list: list[str], test_ds_iter, class_names: list[str]):
+def saliency_map_analysis_all(models_list: list[nnx.Module], model_names_list: list[str], test_ds_iter, class_names: list[str], save_dir: str = None):
     num_models = len(models_list)
     if num_models == 0 or len(model_names_list) != num_models:
         print("Error: Invalid input for saliency_map_analysis_all.")
@@ -663,14 +729,26 @@ def saliency_map_analysis_all(models_list: list[nnx.Module], model_names_list: l
             im_true = axes_sal[1].imshow(np.array(saliency_true_class), cmap='hot')
             axes_sal[1].set_title(f"Saliency for True ({true_class_name})")
             axes_sal[1].axis('off')
-            fig_sal.colorbar(im_true, ax=axes_sal[1], fraction=0.046, pad=0.04)
-
+            fig_sal.colorbar(im_true, ax=axes_sal[1], fraction=0.046, pad=0.04)            
             im_pred = axes_sal[2].imshow(np.array(saliency_pred_class_model), cmap='hot')
             axes_sal[2].set_title(f"Saliency for Pred ({model_predicted_class_name})")
             axes_sal[2].axis('off')
             fig_sal.colorbar(im_pred, ax=axes_sal[2], fraction=0.046, pad=0.04)
 
-            plt.tight_layout(rect=[0, 0, 1, 0.93]); plt.show()
+            plt.tight_layout(rect=[0, 0, 1, 0.93])
+            
+            # Save the plot
+            if save_dir is None:
+                save_dir = create_viz_directory()
+            
+            saliency_dir = os.path.join(save_dir, "saliency_maps")
+            os.makedirs(saliency_dir, exist_ok=True)
+            safe_model_name = model_name.replace(" ", "_").replace("/", "_")
+            filename = f"saliency_{safe_model_name}.png"
+            filepath = os.path.join(saliency_dir, filename)
+            plt.savefig(filepath, dpi=300, bbox_inches='tight')
+            plt.close()
+            print(f"🔥 Saliency maps for {model_name} saved to: {filepath}")
 
         except Exception as e_model_saliency:
             print(f"Error during saliency analysis for model '{model_name}': {e_model_saliency}")

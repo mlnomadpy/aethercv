@@ -11,18 +11,34 @@ from sklearn.cluster import AgglomerativeClustering
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA, FastICA
 import networkx as nx
+import os
+from datetime import datetime
 
 Array = jax.Array
+
+# Create directory for saving visualizations
+def create_viz_directory():
+    """Create a directory for saving visualizations with timestamp"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    viz_dir = f"visualizations_{timestamp}"
+    os.makedirs(viz_dir, exist_ok=True)
+    return viz_dir
 
 # ===== FILTER AND FEATURE ANALYSIS =====
 
 def filter_similarity_analysis_all(models_list: list[nnx.Module], model_names_list: list[str],
-                                  layer_names: dict[str, str]):
+                                  layer_names: dict[str, str], save_dir: str = None):
     """
     Analyze similarity patterns between filters in convolutional layers
     """
     print(f"\n🔍 FILTER SIMILARITY ANALYSIS ({len(models_list)} MODELS)")
     print("=" * 70)
+    
+    if save_dir is None:
+        save_dir = create_viz_directory()
+    
+    filter_dir = os.path.join(save_dir, "filter_analysis")
+    os.makedirs(filter_dir, exist_ok=True)
     
     for i, model_name in enumerate(model_names_list):
         model = models_list[i]
@@ -132,9 +148,16 @@ def filter_similarity_analysis_all(models_list: list[nnx.Module], model_names_li
             axes[1, 1].set_xlabel('Filter Value Range')
             axes[1, 1].set_ylabel('Frequency')
             axes[1, 1].set_title(f'Filter Dynamic Range\n(Redundancy: {redundancy_ratio:.1%})')
-            
             plt.tight_layout()
-            plt.show()
+            
+            # Save the plot
+            safe_model_name = model_name.replace(" ", "_").replace("/", "_")
+            safe_layer_name = layer_name.replace(".", "_").replace("/", "_")
+            filename = f"filter_similarity_{safe_model_name}_{safe_layer_name}.png"
+            filepath = os.path.join(filter_dir, filename)
+            plt.savefig(filepath, dpi=300, bbox_inches='tight')
+            plt.close()
+            print(f"    Saved filter analysis plot: {filepath}")
             
             print(f"  {model_name} - Layer {layer_name}:")
             print(f"    Filters: {C_out}, Shape: {H}x{W}x{C_in}")
@@ -147,12 +170,18 @@ def filter_similarity_analysis_all(models_list: list[nnx.Module], model_names_li
 
 
 def feature_attribution_analysis_all(models_list: list[nnx.Module], model_names_list: list[str],
-                                    test_ds_iter, class_names: list[str]):
+                                    test_ds_iter, class_names: list[str], save_dir: str = None):
     """
     Advanced feature attribution using multiple methods
     """
     print(f"\n🎯 FEATURE ATTRIBUTION ANALYSIS ({len(models_list)} MODELS)")
     print("=" * 70)
+    
+    if save_dir is None:
+        save_dir = create_viz_directory()
+    
+    attribution_dir = os.path.join(save_dir, "feature_attribution")
+    os.makedirs(attribution_dir, exist_ok=True)
     
     try:
         sample_batch = next(test_ds_iter.as_numpy_iterator())
@@ -304,9 +333,15 @@ def feature_attribution_analysis_all(models_list: list[nnx.Module], model_names_
         axes[1, 2].set_xticks(x_pos + width * 1.5)
         axes[1, 2].set_xticklabels(attr_names)
         axes[1, 2].legend()
-        
         plt.tight_layout()
-        plt.show()
+        
+        # Save the plot
+        safe_model_name = model_name.replace(" ", "_").replace("/", "_")
+        filename = f"feature_attribution_{safe_model_name}.png"
+        filepath = os.path.join(attribution_dir, filename)
+        plt.savefig(filepath, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f"    Saved feature attribution plot: {filepath}")
         
         # Print statistics
         print(f"\n{model_name} Attribution Analysis:")
@@ -317,12 +352,18 @@ def feature_attribution_analysis_all(models_list: list[nnx.Module], model_names_
 # ===== LAYER-WISE INFORMATION FLOW ANALYSIS =====
 
 def information_flow_analysis_all(models_list: list[nnx.Module], model_names_list: list[str],
-                                test_ds_iter, layer_sequences: dict[str, list[str]]):
+                                test_ds_iter, layer_sequences: dict[str, list[str]], save_dir: str = None):
     """
     Analyze how information flows through different layers
     """
     print(f"\n🌊 INFORMATION FLOW ANALYSIS ({len(models_list)} MODELS)")
     print("=" * 70)
+    
+    if save_dir is None:
+        save_dir = create_viz_directory()
+    
+    flow_dir = os.path.join(save_dir, "information_flow")
+    os.makedirs(flow_dir, exist_ok=True)
     
     try:
         sample_batch = next(test_ds_iter.as_numpy_iterator())
@@ -456,9 +497,15 @@ def information_flow_analysis_all(models_list: list[nnx.Module], model_names_lis
         axes[1, 2].set_xticklabels(layer_names_plot, rotation=45)
         axes[1, 2].legend()
         axes[1, 2].grid(True, alpha=0.3)
-        
         plt.tight_layout()
-        plt.show()
+        
+        # Save the plot
+        safe_model_name = model_name.replace(" ", "_").replace("/", "_")
+        filename = f"information_flow_{safe_model_name}.png"
+        filepath = os.path.join(flow_dir, filename)
+        plt.savefig(filepath, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f"    Saved information flow plot: {filepath}")
         
         # Print detailed statistics
         print(f"\n{model_name} Information Flow Summary:")
@@ -477,12 +524,18 @@ def information_flow_analysis_all(models_list: list[nnx.Module], model_names_lis
 
 def decision_boundary_visualization_2d(models_list: list[nnx.Module], model_names_list: list[str],
                                      test_ds_iter, class_names: list[str], 
-                                     num_samples: int = 200):
+                                     num_samples: int = 200, save_dir: str = None):
     """
     Create 2D visualization of decision boundaries using PCA projection
     """
     print(f"\n🗺️ DECISION BOUNDARY VISUALIZATION ({len(models_list)} MODELS)")
     print("=" * 70)
+    
+    if save_dir is None:
+        save_dir = create_viz_directory()
+    
+    boundary_dir = os.path.join(save_dir, "decision_boundaries")
+    os.makedirs(boundary_dir, exist_ok=True)
     
     # Collect data and predictions
     images_list = []
@@ -605,9 +658,14 @@ def decision_boundary_visualization_2d(models_list: list[nnx.Module], model_name
             axes[row, col].set_visible(False)
         else:
             axes[col].set_visible(False)
-    
     plt.tight_layout()
-    plt.show()
+    
+    # Save the plot
+    filename = "decision_boundaries_all_models.png"
+    filepath = os.path.join(boundary_dir, filename)
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"    Saved decision boundary plot: {filepath}")
     
     # Print summary statistics
     print("\nDecision Boundary Analysis Summary:")
@@ -625,12 +683,19 @@ def decision_boundary_visualization_2d(models_list: list[nnx.Module], model_name
 
 def prediction_reliability_analysis_all(models_list: list[nnx.Module], model_names_list: list[str],
                                        test_ds_iter, class_names: list[str],
-                                       confidence_thresholds: list[float] = [0.5, 0.7, 0.9, 0.95]):
+                                       confidence_thresholds: list[float] = [0.5, 0.7, 0.9, 0.95],
+                                       save_dir: str = None):
     """
     Analyze prediction reliability at different confidence levels
     """
     print(f"\n📊 PREDICTION RELIABILITY ANALYSIS ({len(models_list)} MODELS)")
     print("=" * 70)
+    
+    if save_dir is None:
+        save_dir = create_viz_directory()
+    
+    reliability_dir = os.path.join(save_dir, "reliability_analysis")
+    os.makedirs(reliability_dir, exist_ok=True)
     
     # Collect all predictions and confidences
     model_data = {name: {'predictions': [], 'confidences': [], 'correct': []} 
@@ -783,10 +848,15 @@ def prediction_reliability_analysis_all(models_list: list[nnx.Module], model_nam
     axes[1, 1].set_ylabel('Density')
     axes[1, 1].set_title('Confidence Distribution by Correctness')
     axes[1, 1].legend()
-    
     plt.tight_layout()
-    plt.show()
     
+    # Save the plot
+    filename = "prediction_reliability_analysis.png"
+    filepath = os.path.join(reliability_dir, filename)
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"📊 Prediction reliability analysis saved to: {filepath}")
+
     # Print detailed reliability metrics
     print("\nReliability Analysis Summary:")
     print("-" * 50)

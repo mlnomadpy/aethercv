@@ -11,13 +11,23 @@ from functools import partial
 import scipy.ndimage
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans
+import os
+from datetime import datetime
 
 Array = jax.Array
+
+# Create directory for saving visualizations
+def create_viz_directory():
+    """Create a directory for saving visualizations with timestamp"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    viz_dir = f"visualizations_{timestamp}"
+    os.makedirs(viz_dir, exist_ok=True)
+    return viz_dir
 
 # ===== ADVANCED GRADIENT-BASED EXPLAINABILITY =====
 
 def guided_backprop_all(models_list: list[nnx.Module], model_names_list: list[str], 
-                       test_ds_iter, class_names: list[str]):
+                       test_ds_iter, class_names: list[str], save_dir: str = None):
     """
     Guided Backpropagation - modifies gradients during backprop to only show positive contributions
     """
@@ -71,13 +81,24 @@ def guided_backprop_all(models_list: list[nnx.Module], model_names_list: list[st
         axes[2].imshow(overlay)
         axes[2].set_title('Overlay')
         axes[2].axis('off')
-        
         plt.tight_layout()
-        plt.show()
+        
+        # Save the plot
+        if save_dir is None:
+            save_dir = create_viz_directory()
+        
+        guided_backprop_dir = os.path.join(save_dir, "guided_backprop")
+        os.makedirs(guided_backprop_dir, exist_ok=True)
+        safe_model_name = model_name.replace(" ", "_").replace("/", "_")
+        filename = f"guided_backprop_{safe_model_name}.png"
+        filepath = os.path.join(guided_backprop_dir, filename)
+        plt.savefig(filepath, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f"🎯 Guided backprop for {model_name} saved to: {filepath}")
 
 
 def integrated_gradients_all(models_list: list[nnx.Module], model_names_list: list[str],
-                           test_ds_iter, class_names: list[str], num_steps: int = 50):
+                           test_ds_iter, class_names: list[str], num_steps: int = 50, save_dir: str = None):
     """
     Integrated Gradients - integrates gradients along path from baseline to input
     """
@@ -141,16 +162,27 @@ def integrated_gradients_all(models_list: list[nnx.Module], model_names_list: li
         axes[2].imshow(overlay)
         axes[2].set_title('Attribution Overlay')
         axes[2].axis('off')
-        
         plt.tight_layout()
-        plt.show()
+        
+        # Save the plot
+        if save_dir is None:
+            save_dir = create_viz_directory()
+        
+        integrated_gradients_dir = os.path.join(save_dir, "integrated_gradients")
+        os.makedirs(integrated_gradients_dir, exist_ok=True)
+        safe_model_name = model_name.replace(" ", "_").replace("/", "_")
+        filename = f"integrated_gradients_{safe_model_name}.png"
+        filepath = os.path.join(integrated_gradients_dir, filename)
+        plt.savefig(filepath, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f"🔗 Integrated gradients for {model_name} saved to: {filepath}")
 
 
 # ===== FEATURE REPRESENTATION ANALYSIS =====
 
 def feature_space_visualization_all(models_list: list[nnx.Module], model_names_list: list[str],
                                   test_ds_iter, class_names: list[str], 
-                                  layer_names: dict[str, str], max_samples: int = 1000):
+                                  layer_names: dict[str, str], max_samples: int = 1000, save_dir: str = None):
     """
     Visualize feature representations using t-SNE and PCA
     """
@@ -222,9 +254,20 @@ def feature_space_visualization_all(models_list: list[nnx.Module], model_names_l
         
         # Add colorbar
         plt.colorbar(scatter2, ax=ax2, label='Class')
-        
         plt.tight_layout()
-        plt.show()
+        
+        # Save the plot
+        if save_dir is None:
+            save_dir = create_viz_directory()
+        
+        feature_space_dir = os.path.join(save_dir, "feature_space")
+        os.makedirs(feature_space_dir, exist_ok=True)
+        safe_model_name = model_name.replace(" ", "_").replace("/", "_")
+        filename = f"feature_space_{safe_model_name}.png"
+        filepath = os.path.join(feature_space_dir, filename)
+        plt.savefig(filepath, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f"🗺️ Feature space visualization for {model_name} saved to: {filepath}")
         
         # Calculate clustering metrics
         if len(np.unique(labels)) > 1:
@@ -234,7 +277,7 @@ def feature_space_visualization_all(models_list: list[nnx.Module], model_names_l
 
 
 def layer_wise_activation_analysis_all(models_list: list[nnx.Module], model_names_list: list[str],
-                                     test_ds_iter, sample_layers: dict[str, list[str]]):
+                                     test_ds_iter, sample_layers: dict[str, list[str]], save_dir: str = None):
     """
     Analyze activation patterns across different layers
     """
@@ -291,9 +334,20 @@ def layer_wise_activation_analysis_all(models_list: list[nnx.Module], model_name
                 axes[j].set_title(f'{metric.capitalize()}')
                 axes[j].set_xticks(range(len(layer_names_plot)))
                 axes[j].set_xticklabels(layer_names_plot, rotation=45)
-            
             plt.tight_layout()
-            plt.show()
+            
+            # Save the plot
+            if save_dir is None:
+                save_dir = create_viz_directory()
+            
+            layer_analysis_dir = os.path.join(save_dir, "layer_analysis")
+            os.makedirs(layer_analysis_dir, exist_ok=True)
+            safe_model_name = model_name.replace(" ", "_").replace("/", "_")
+            filename = f"layer_analysis_{safe_model_name}.png"
+            filepath = os.path.join(layer_analysis_dir, filename)
+            plt.savefig(filepath, dpi=300, bbox_inches='tight')
+            plt.close()
+            print(f"📊 Layer analysis for {model_name} saved to: {filepath}")
             
             # Print detailed stats
             print(f"\n{model_name} Activation Statistics:")
@@ -306,7 +360,7 @@ def layer_wise_activation_analysis_all(models_list: list[nnx.Module], model_name
 
 def grad_cam_analysis_all(models_list: list[nnx.Module], model_names_list: list[str],
                          test_ds_iter, class_names: list[str], 
-                         target_layers: dict[str, str]):
+                         target_layers: dict[str, str], save_dir: str = None):
     """
     Grad-CAM (Gradient-weighted Class Activation Mapping)
     """
@@ -386,9 +440,20 @@ def grad_cam_analysis_all(models_list: list[nnx.Module], model_names_list: list[
                     axes[2].imshow(overlay)
                     axes[2].set_title('Overlay')
                     axes[2].axis('off')
-                
                 plt.tight_layout()
-                plt.show()
+                
+                # Save the plot
+                if save_dir is None:
+                    save_dir = create_viz_directory()
+                
+                grad_cam_dir = os.path.join(save_dir, "grad_cam")
+                os.makedirs(grad_cam_dir, exist_ok=True)
+                safe_model_name = model_name.replace(" ", "_").replace("/", "_")
+                filename = f"grad_cam_{safe_model_name}.png"
+                filepath = os.path.join(grad_cam_dir, filename)
+                plt.savefig(filepath, dpi=300, bbox_inches='tight')
+                plt.close()
+                print(f"🎯 Grad-CAM for {model_name} saved to: {filepath}")
                 
         except Exception as e:
             print(f"Error in Grad-CAM for {model_name}: {e}")
@@ -398,7 +463,7 @@ def grad_cam_analysis_all(models_list: list[nnx.Module], model_names_list: list[
 
 def model_decision_boundary_comparison(models_list: list[nnx.Module], model_names_list: list[str],
                                      test_ds_iter, class_names: list[str], 
-                                     num_samples: int = 500):
+                                     num_samples: int = 500, save_dir: str = None):
     """
     Compare how different models make decisions on the same inputs
     """
@@ -534,11 +599,22 @@ def model_decision_boundary_comparison(models_list: list[nnx.Module], model_name
     axes[1, 1].set_ylabel('Accuracy')
     axes[1, 1].set_xticks(x_pos + width * (len(model_names_list) - 1) / 2)
     axes[1, 1].set_xticklabels([class_names[i] if i < len(class_names) else f'Class {i}' 
-                               for i in unique_classes], rotation=45)
+                               for i in unique_classes], rotation=45)    
     axes[1, 1].legend()
     
     plt.tight_layout()
-    plt.show()
+    
+    # Save the plot
+    if save_dir is None:
+        save_dir = create_viz_directory()
+    
+    decision_boundary_dir = os.path.join(save_dir, "decision_boundary_comparison")
+    os.makedirs(decision_boundary_dir, exist_ok=True)
+    filename = "model_decision_boundary_comparison.png"
+    filepath = os.path.join(decision_boundary_dir, filename)
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"🔄 Model decision boundary comparison saved to: {filepath}")
     
     # Print summary statistics
     print("\nDecision Boundary Analysis Summary:")
@@ -557,7 +633,7 @@ def model_decision_boundary_comparison(models_list: list[nnx.Module], model_name
 
 def prediction_uncertainty_analysis_all(models_list: list[nnx.Module], model_names_list: list[str],
                                        test_ds_iter, class_names: list[str],
-                                       num_samples: int = 200):
+                                       num_samples: int = 200, save_dir: str = None):
     """
     Analyze prediction uncertainty using entropy and confidence measures
     """
@@ -681,9 +757,19 @@ def prediction_uncertainty_analysis_all(models_list: list[nnx.Module], model_nam
     axes[1, 1].set_xticks(x_pos + width)
     axes[1, 1].set_xticklabels(model_names_plot)
     axes[1, 1].legend()
-    
     plt.tight_layout()
-    plt.show()
+    
+    # Save the plot
+    if save_dir is None:
+        save_dir = create_viz_directory()
+    
+    uncertainty_dir = os.path.join(save_dir, "uncertainty_analysis")
+    os.makedirs(uncertainty_dir, exist_ok=True)
+    filename = "prediction_uncertainty_analysis.png"
+    filepath = os.path.join(uncertainty_dir, filename)
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"🎲 Prediction uncertainty analysis saved to: {filepath}")
     
     # Print detailed statistics
     print("\nUncertainty Analysis Summary:")

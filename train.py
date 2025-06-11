@@ -178,13 +178,16 @@ def run_complete_comparison(dataset_name: str = 'cifar10', model_configs_to_run:
     histories_list = [trained_model_data[name]['history'] for name in model_names_list]
     models_list = [trained_model_data[name]['model'] for name in model_names_list]
     layer_name_map_for_kernel_viz = {name: trained_model_data[name]['kernel_viz_layer'] for name in model_names_list}
-    layer_name_map_for_activation_viz = {name: trained_model_data[name]['activation_viz_layer'] for name in model_names_list}
-
-    # --- Run Combined Analysis ---
+    layer_name_map_for_activation_viz = {name: trained_model_data[name]['activation_viz_layer'] for name in model_names_list}    # --- Run Combined Analysis ---
     print(f"\\n📊 STEP 3: Running Combined Comparison Analysis for ALL models on {dataset_name}...")
     print("-"*70)
 
-    compare_training_curves(histories_list, model_names_list)
+    # Create centralized directory for saving all visualizations
+    from utils.analysis_utils import create_viz_directory
+    global_save_dir = create_viz_directory()
+    print(f"📁 All visualizations will be saved to: {global_save_dir}")
+
+    compare_training_curves(histories_list, model_names_list, save_dir=global_save_dir)
     print_final_metrics_comparison_all(histories_list, model_names_list)
     analyze_convergence_all(histories_list, model_names_list)
 
@@ -206,220 +209,127 @@ def run_complete_comparison(dataset_name: str = 'cifar10', model_configs_to_run:
     all_models_predictions_package = detailed_test_evaluation_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names=class_names_comp)    # ===== ANALYSIS EXECUTION BASED ON MODE =====
     if analysis_mode in ['basic']:
         print(f"\n📊 BASIC ANALYSIS COMPLETE for {len(model_configs)}-way comparison.")
-        
     elif analysis_mode in ['standard']:
         print(f"\n📊 RUNNING STANDARD ANALYSIS...")
         print("-" * 70)
         
         if all_models_predictions_package:
-            plot_confusion_matrices_all(all_models_predictions_package)
+            plot_confusion_matrices_all(all_models_predictions_package, save_dir=global_save_dir)
             generate_summary_report_all(histories_list, model_names_list, all_models_predictions_package)
         else:
             print("Skipping confusion matrix and summary report generation due to failed detailed test evaluation.")
             generate_summary_report_all(histories_list, model_names_list, {}) # Partial report
 
-        visualize_kernels_all(models_list, model_names_list, layer_name_map_for_kernel_viz, num_kernels_to_show=16)
-        activation_map_visualization_all(models_list, model_names_list, layer_name_map_for_activation_viz, current_test_ds_for_eval_demo, num_maps_to_show=16)
-        saliency_map_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names=class_names_comp)
+        visualize_kernels_all(models_list, model_names_list, layer_name_map_for_kernel_viz, num_kernels_to_show=16, save_dir=global_save_dir)
+        activation_map_visualization_all(models_list, model_names_list, layer_name_map_for_activation_viz, current_test_ds_for_eval_demo, num_maps_to_show=16, save_dir=global_save_dir)
+        saliency_map_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names=class_names_comp, save_dir=global_save_dir)
         
         print(f"\n📊 STANDARD ANALYSIS COMPLETE for {len(model_configs)}-way comparison.")
-        
     elif analysis_mode in ['advanced']:
         print(f"\n📊 RUNNING STANDARD ANALYSIS...")
         print("-" * 70)
         
         if all_models_predictions_package:
-            plot_confusion_matrices_all(all_models_predictions_package)
+            plot_confusion_matrices_all(all_models_predictions_package, save_dir=global_save_dir)
             generate_summary_report_all(histories_list, model_names_list, all_models_predictions_package)
         else:
             print("Skipping confusion matrix and summary report generation due to failed detailed test evaluation.")
             generate_summary_report_all(histories_list, model_names_list, {}) # Partial report
 
-        visualize_kernels_all(models_list, model_names_list, layer_name_map_for_kernel_viz, num_kernels_to_show=16)
-        activation_map_visualization_all(models_list, model_names_list, layer_name_map_for_activation_viz, current_test_ds_for_eval_demo, num_maps_to_show=16)
-        saliency_map_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names=class_names_comp)
+        visualize_kernels_all(models_list, model_names_list, layer_name_map_for_kernel_viz, num_kernels_to_show=16, save_dir=global_save_dir)
+        activation_map_visualization_all(models_list, model_names_list, layer_name_map_for_activation_viz, current_test_ds_for_eval_demo, num_maps_to_show=16, save_dir=global_save_dir)
+        saliency_map_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names=class_names_comp, save_dir=global_save_dir)
         
         print(f"\n🚀 RUNNING ADVANCED EXPLAINABILITY ANALYSIS...")
         print("-" * 70)
         
         # Advanced gradient-based methods
-        guided_backprop_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
-        integrated_gradients_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
-        feature_attribution_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
-        
-        # Feature representation analysis
+        guided_backprop_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
+        integrated_gradients_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
+        feature_attribution_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
+          # Feature representation analysis
         feature_space_visualization_all(models_list, model_names_list, current_test_ds_for_eval_demo, 
-                                       class_names_comp, layer_name_map_for_activation_viz, max_samples=500)
+                                       class_names_comp, layer_name_map_for_activation_viz, max_samples=500, save_dir=global_save_dir)
         
         # Model comparison and decision boundaries
-        model_decision_boundary_comparison(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
-        decision_boundary_visualization_2d(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
+        model_decision_boundary_comparison(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
+        decision_boundary_visualization_2d(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
         
         # Uncertainty and reliability analysis
-        prediction_uncertainty_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
-        prediction_reliability_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
+        prediction_uncertainty_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
+        prediction_reliability_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
         
         print(f"\n🚀 ADVANCED ANALYSIS COMPLETE for {len(model_configs)}-way comparison.")
-        
     elif analysis_mode in ['comprehensive']:
         print(f"\n📊 RUNNING STANDARD ANALYSIS...")
         print("-" * 70)
         
         if all_models_predictions_package:
-            plot_confusion_matrices_all(all_models_predictions_package)
+            plot_confusion_matrices_all(all_models_predictions_package, save_dir=global_save_dir)
             generate_summary_report_all(histories_list, model_names_list, all_models_predictions_package)
         else:
             print("Skipping confusion matrix and summary report generation due to failed detailed test evaluation.")
             generate_summary_report_all(histories_list, model_names_list, {}) # Partial report
 
-        visualize_kernels_all(models_list, model_names_list, layer_name_map_for_kernel_viz, num_kernels_to_show=16)
-        activation_map_visualization_all(models_list, model_names_list, layer_name_map_for_activation_viz, current_test_ds_for_eval_demo, num_maps_to_show=16)
-        saliency_map_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names=class_names_comp)
+        visualize_kernels_all(models_list, model_names_list, layer_name_map_for_kernel_viz, num_kernels_to_show=16, save_dir=global_save_dir)
+        activation_map_visualization_all(models_list, model_names_list, layer_name_map_for_activation_viz, current_test_ds_for_eval_demo, num_maps_to_show=16, save_dir=global_save_dir)
+        saliency_map_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names=class_names_comp, save_dir=global_save_dir)
         
         print(f"\n🚀 RUNNING ADVANCED EXPLAINABILITY ANALYSIS...")
         print("-" * 70)
         
         # Advanced gradient-based methods
-        guided_backprop_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
-        integrated_gradients_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
-        feature_attribution_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
+        guided_backprop_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
+        integrated_gradients_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
+        feature_attribution_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
         
         # Feature representation analysis
         feature_space_visualization_all(models_list, model_names_list, current_test_ds_for_eval_demo, 
-                                       class_names_comp, layer_name_map_for_activation_viz, max_samples=500)
+                                       class_names_comp, layer_name_map_for_activation_viz, max_samples=500, save_dir=global_save_dir)
         
         # Layer-wise analysis
         sample_layers_map = {
             name: [layer_name_map_for_kernel_viz[name], layer_name_map_for_activation_viz[name]] 
             for name in model_names_list
         }
-        layer_wise_activation_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, sample_layers_map)
+        layer_wise_activation_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, sample_layers_map, save_dir=global_save_dir)
         
         # Information flow analysis
-        information_flow_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, sample_layers_map)
+        information_flow_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, sample_layers_map, save_dir=global_save_dir)
         
         # Attention and influence analysis
         grad_cam_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, 
-                             class_names_comp, layer_name_map_for_activation_viz)
+                             class_names_comp, layer_name_map_for_activation_viz, save_dir=global_save_dir)
         
         # Model comparison and decision boundaries
-        model_decision_boundary_comparison(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
-        decision_boundary_visualization_2d(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
+        model_decision_boundary_comparison(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
+        decision_boundary_visualization_2d(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
         
         # Uncertainty and reliability analysis
-        prediction_uncertainty_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
-        prediction_reliability_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
-        
+        prediction_uncertainty_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
+        prediction_reliability_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
         print(f"\n🔬 RUNNING ROBUSTNESS & EFFICIENCY ANALYSIS...")
         print("-" * 70)
         
         # Robustness analysis
-        adversarial_robustness_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
-        noise_robustness_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp)
+        adversarial_robustness_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
+        noise_robustness_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, class_names_comp, save_dir=global_save_dir)
         
         # Model complexity and efficiency
-        model_complexity_analysis_all(models_list, model_names_list)
-        computational_efficiency_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo)
+        model_complexity_analysis_all(models_list, model_names_list, save_dir=global_save_dir)
+        computational_efficiency_analysis_all(models_list, model_names_list, current_test_ds_for_eval_demo, save_dir=global_save_dir)
         
         # Filter and architectural analysis
-        filter_similarity_analysis_all(models_list, model_names_list, layer_name_map_for_kernel_viz)
+        filter_similarity_analysis_all(models_list, model_names_list, layer_name_map_for_kernel_viz, save_dir=global_save_dir)
         
         print(f"\n🎉 COMPREHENSIVE ANALYSIS COMPLETE for {len(model_configs)}-way comparison. 🎉")
-    
     else:
         print(f"Unknown analysis_mode: {analysis_mode}. Using 'standard' mode.")
         analysis_mode = 'standard'
         # Recursively call with standard mode
         return run_complete_comparison(dataset_name, model_configs_to_run, 'standard')
+    
     print("   Review plots and console output for results.")
-
-    # --- Run Advanced Analysis Methods ---
-    print(f"\\n🔍 STEP 4: Running Advanced Analysis Methods for ALL models on {dataset_name}...")
-    print("-"*70)
-
-    # Ensure the advanced analysis functions are available
-    try:
-        for model, model_name in zip(models_list, model_names_list):
-            print(f"  Running advanced analysis for {model_name}...")
-            
-            # Guided Backpropagation
-            guided_backprop_all([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            # Integrated Gradients
-            integrated_gradients_all([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            # Feature Space Visualization
-            feature_space_visualization_all([model], current_test_ds_for_eval_demo)
-            
-            # Layer-wise Activation Analysis
-            layer_wise_activation_analysis_all([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            # Grad-CAM Analysis
-            grad_cam_analysis_all([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            # Model Decision Boundary Comparison
-            model_decision_boundary_comparison([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            # Prediction Uncertainty Analysis
-            prediction_uncertainty_analysis_all([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            print(f"  Advanced analysis completed for {model_name}.")
-    except Exception as e:
-        print(f"Error running advanced analysis: {e}")
-
-    # --- Robustness Analysis (Optional, can be commented out) ---
-    print(f"\\n🛡️ STEP 5: Running Robustness Analysis for ALL models on {dataset_name}...")
-    print("-"*70)
-
-    try:
-        for model, model_name in zip(models_list, model_names_list):
-            print(f"  Running robustness analysis for {model_name}...")
-            
-            # Adversarial Robustness Analysis
-            adversarial_robustness_analysis_all([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            # Noise Robustness Analysis
-            noise_robustness_analysis_all([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            # Out-of-Distribution Detection
-            out_of_distribution_detection_all([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            # Computational Efficiency Analysis
-            computational_efficiency_analysis_all([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            # Model Complexity Analysis
-            model_complexity_analysis_all([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            print(f"  Robustness analysis completed for {model_name}.")
-    except Exception as e:
-        print(f"Error running robustness analysis: {e}")
-
-    # --- Interpretability Analysis (Optional, can be commented out) ---
-    print(f"\\n🔑 STEP 6: Running Interpretability Analysis for ALL models on {dataset_name}...")
-    print("-"*70)
-
-    try:
-        for model, model_name in zip(models_list, model_names_list):
-            print(f"  Running interpretability analysis for {model_name}...")
-            
-            # Filter Similarity Analysis
-            filter_similarity_analysis_all([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            # Feature Attribution Analysis
-            feature_attribution_analysis_all([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            # Information Flow Analysis
-            information_flow_analysis_all([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            # Decision Boundary Visualization (2D)
-            decision_boundary_visualization_2d([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            # Prediction Reliability Analysis
-            prediction_reliability_analysis_all([model], current_test_ds_for_eval_demo, class_names=class_names_comp)
-            
-            print(f"  Interpretability analysis completed for {model_name}.")
-    except Exception as e:
-        print(f"Error running interpretability analysis: {e}")
 
     final_results_structure = {
         model_name: {

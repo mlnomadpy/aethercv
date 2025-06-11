@@ -8,14 +8,24 @@ from flax import nnx
 from functools import partial
 import scipy.stats
 from sklearn.metrics import precision_recall_curve, roc_curve, auc
+import os
+from datetime import datetime
 
 Array = jax.Array
+
+# Create directory for saving visualizations
+def create_viz_directory():
+    """Create a directory for saving visualizations with timestamp"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    viz_dir = f"visualizations_{timestamp}"
+    os.makedirs(viz_dir, exist_ok=True)
+    return viz_dir
 
 # ===== ADVERSARIAL ROBUSTNESS ANALYSIS =====
 
 def adversarial_robustness_analysis_all(models_list: list[nnx.Module], model_names_list: list[str],
                                       test_ds_iter, class_names: list[str],
-                                      epsilon_values: list[float] = [0.01, 0.03, 0.05, 0.1]):
+                                      epsilon_values: list[float] = [0.01, 0.03, 0.05, 0.1], save_dir: str = None):
     """
     Test model robustness against adversarial examples using FGSM attack
     """
@@ -106,16 +116,26 @@ def adversarial_robustness_analysis_all(models_list: list[nnx.Module], model_nam
     ax2.set_xticks(x_pos)
     ax2.set_xticklabels(model_names_plot)
     ax2.legend()
-    
     plt.tight_layout()
-    plt.show()
+    
+    # Save the plot
+    if save_dir is None:
+        save_dir = create_viz_directory()
+    
+    adversarial_dir = os.path.join(save_dir, "adversarial_robustness")
+    os.makedirs(adversarial_dir, exist_ok=True)
+    filename = "adversarial_robustness_analysis.png"
+    filepath = os.path.join(adversarial_dir, filename)
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"⚔️ Adversarial robustness analysis saved to: {filepath}")
     
     return results
 
 
 def noise_robustness_analysis_all(models_list: list[nnx.Module], model_names_list: list[str],
                                 test_ds_iter, class_names: list[str],
-                                noise_levels: list[float] = [0.01, 0.05, 0.1, 0.2]):
+                                noise_levels: list[float] = [0.01, 0.05, 0.1, 0.2], save_dir: str = None):
     """
     Test model robustness against various types of noise
     """
@@ -224,9 +244,19 @@ def noise_robustness_analysis_all(models_list: list[nnx.Module], model_names_lis
         ax.set_xticks(x_pos + width)
         ax.set_xticklabels(model_names_plot)
         ax.legend()
-    
     plt.tight_layout()
-    plt.show()
+    
+    # Save the plot
+    if save_dir is None:
+        save_dir = create_viz_directory()
+    
+    noise_robustness_dir = os.path.join(save_dir, "noise_robustness")
+    os.makedirs(noise_robustness_dir, exist_ok=True)
+    filename = "noise_robustness_analysis.png"
+    filepath = os.path.join(noise_robustness_dir, filename)
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"🔊 Noise robustness analysis saved to: {filepath}")
     
     # Print summary
     print("\nNoise Robustness Summary:")
@@ -245,7 +275,7 @@ def noise_robustness_analysis_all(models_list: list[nnx.Module], model_names_lis
 
 def out_of_distribution_detection_all(models_list: list[nnx.Module], model_names_list: list[str],
                                      in_distribution_ds, out_distribution_ds, 
-                                     class_names: list[str]):
+                                     class_names: list[str], save_dir: str = None):
     """
     Analyze model behavior on out-of-distribution data
     """
@@ -400,10 +430,20 @@ def out_of_distribution_detection_all(models_list: list[nnx.Module], model_names
     axes[1, 1].set_xticks(x_pos + width)
     axes[1, 1].set_xticklabels(model_names_plot)
     axes[1, 1].legend()
-    
     plt.tight_layout()
-    plt.show()
     
+    # Save the plot
+    if save_dir is None:
+        save_dir = create_viz_directory()
+    
+    ood_detection_dir = os.path.join(save_dir, "ood_detection")
+    os.makedirs(ood_detection_dir, exist_ok=True)
+    filename = "out_of_distribution_detection_analysis.png"
+    filepath = os.path.join(ood_detection_dir, filename)
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"🎭 Out-of-distribution detection analysis saved to: {filepath}")
+
     # Print detailed statistics
     print("\nOOD Detection Summary:")
     print("-" * 50)
@@ -425,7 +465,7 @@ def out_of_distribution_detection_all(models_list: list[nnx.Module], model_names
 # ===== PERFORMANCE PROFILING =====
 
 def computational_efficiency_analysis_all(models_list: list[nnx.Module], model_names_list: list[str],
-                                         test_ds_iter, batch_sizes: list[int] = [1, 8, 32, 64]):
+                                         test_ds_iter, batch_sizes: list[int] = [1, 8, 32, 64], save_dir: str = None):
     """
     Analyze computational efficiency and memory usage of models
     """
@@ -548,16 +588,26 @@ def computational_efficiency_analysis_all(models_list: list[nnx.Module], model_n
     axes[1, 1].set_xticks(x_pos)
     axes[1, 1].set_xticklabels(model_names_plot)
     axes[1, 1].legend()
-    
     plt.tight_layout()
-    plt.show()
     
+    # Save the plot
+    if save_dir is None:
+        save_dir = create_viz_directory()
+    
+    efficiency_dir = os.path.join(save_dir, "computational_efficiency")
+    os.makedirs(efficiency_dir, exist_ok=True)
+    filename = "computational_efficiency_analysis.png"
+    filepath = os.path.join(efficiency_dir, filename)
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"⚡ Computational efficiency analysis saved to: {filepath}")
+
     return efficiency_results
 
 
 # ===== MODEL COMPLEXITY ANALYSIS =====
 
-def model_complexity_analysis_all(models_list: list[nnx.Module], model_names_list: list[str]):
+def model_complexity_analysis_all(models_list: list[nnx.Module], model_names_list: list[str], save_dir: str = None):
     """
     Analyze model complexity in terms of parameters, layers, and architecture
     """
@@ -674,8 +724,18 @@ def model_complexity_analysis_all(models_list: list[nnx.Module], model_names_lis
     axes[1, 1].set_xticks(x_pos + width * (len(model_names_plot) - 1) / 2)
     axes[1, 1].set_xticklabels(['Parameters', 'Size (MB)', 'Layers'])
     axes[1, 1].legend()
-    
     plt.tight_layout()
-    plt.show()
     
+    # Save the plot
+    if save_dir is None:
+        save_dir = create_viz_directory()
+    
+    complexity_dir = os.path.join(save_dir, "model_complexity")
+    os.makedirs(complexity_dir, exist_ok=True)
+    filename = "model_complexity_analysis.png"
+    filepath = os.path.join(complexity_dir, filename)
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"🏗️ Model complexity analysis saved to: {filepath}")
+
     return complexity_results
