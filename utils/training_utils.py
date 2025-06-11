@@ -72,7 +72,8 @@ def _train_model_loop(
             ds_info_for_model = DummyInfo()
 
         num_classes = ds_info_for_model.features['label'].num_classes
-        input_channels = ds_info_for_model.features['image'].shape[-1]        train_split_name, test_split_name = 'train', 'test'
+        input_channels = ds_info_for_model.features['image'].shape[-1]        
+        train_split_name, test_split_name = 'train', 'test'
         # image_key, label_key = 'image', 'label' # These are used in preprocess, ensure consistency
         current_num_epochs = GLOBAL_DEFAULT_NUM_EPOCHS
         current_eval_every = GLOBAL_DEFAULT_EVAL_EVERY
