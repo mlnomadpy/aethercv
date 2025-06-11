@@ -9,7 +9,7 @@ from jax.sharding import NamedSharding, PartitionSpec as P
 
 # Imports from this project
 from utils.config import (
-    DATASET_CONFIGS, _global_num_epochs, _global_eval_every, _global_batch_size, mesh
+    DATASET_CONFIGS, GLOBAL_DEFAULT_NUM_EPOCHS, GLOBAL_DEFAULT_EVAL_EVERY, GLOBAL_DEFAULT_BATCH_SIZE, mesh
 )
 # Import model classes by their names to avoid circular dependencies if utils are imported by models
 # This requires models to be available in the python path, e.g. via aethercv.models.cnn or aethercv.models.resnet
@@ -72,12 +72,11 @@ def _train_model_loop(
             ds_info_for_model = DummyInfo()
 
         num_classes = ds_info_for_model.features['label'].num_classes
-        input_channels = ds_info_for_model.features['image'].shape[-1]
-        train_split_name, test_split_name = 'train', 'test'
+        input_channels = ds_info_for_model.features['image'].shape[-1]        train_split_name, test_split_name = 'train', 'test'
         # image_key, label_key = 'image', 'label' # These are used in preprocess, ensure consistency
-        current_num_epochs = _global_num_epochs
-        current_eval_every = _global_eval_every
-        current_batch_size = _global_batch_size
+        current_num_epochs = GLOBAL_DEFAULT_NUM_EPOCHS
+        current_eval_every = GLOBAL_DEFAULT_EVAL_EVERY
+        current_batch_size = GLOBAL_DEFAULT_BATCH_SIZE
         print(f"Warning: Dataset '{dataset_name}' not in pre-defined configs. Inferred info. Using global training params with scaled batch size.")
     else:
         num_classes = config['num_classes']
