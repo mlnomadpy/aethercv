@@ -227,23 +227,23 @@ class BaseResNet(nnx.Module):
 
     def __call__(self, x: Array, training: bool = False, return_activations_for_layer: tp.Optional[str] = None) -> Array:
         activations = {}
-        x = self.stem_conv(x); activations['stem_conv_output'] = x
-        if return_activations_for_layer == 'stem_conv_output': return x
+        x = self.stem_conv(x); activations['stem_conv'] = x
+        if return_activations_for_layer == 'stem_conv': return x
 
         if self.model_type == "Linear":
-            x = self.stem_bn(x, use_running_average=not training); activations['stem_bn_output'] = x
-            if return_activations_for_layer == 'stem_bn_output': return x
-            x = nnx.relu(x); activations['stem_relu_output'] = x
-            if return_activations_for_layer == 'stem_relu_output': return x
+            x = self.stem_bn(x, use_running_average=not training); activations['stem_bn'] = x
+            if return_activations_for_layer == 'stem_bn': return x
+            x = nnx.relu(x); activations['stem_relu'] = x
+            if return_activations_for_layer == 'stem_relu': return x
 
-        x = self.max_pool(x); activations['stem_max_pool_output'] = x
-        if return_activations_for_layer == 'stem_max_pool_output': return x
+        x = self.max_pool(x); activations['stem_pool'] = x
+        if return_activations_for_layer == 'stem_pool': return x
 
         for stage_idx, stage_layers_list in enumerate(self.stages):
             # Assuming stage_layers_list is a list of block modules as constructed
             for block_idx, block in enumerate(stage_layers_list):
                 x = block(x, training=training)
-                current_activation_key = f'stage{stage_idx}_block{block_idx}_output'
+                current_activation_key = f'stage{stage_idx}_block{block_idx}'
                 activations[current_activation_key] = x
                 if return_activations_for_layer == current_activation_key:
                     return x
@@ -251,8 +251,8 @@ class BaseResNet(nnx.Module):
         x = jnp.mean(x, axis=(1, 2)); activations['global_avg_pool'] = x
         if return_activations_for_layer == 'global_avg_pool': return x
 
-        x = self.classifier(x); activations['final_classifier_output'] = x
-        if return_activations_for_layer == 'final_classifier_output': return x
+        x = self.classifier(x); activations['classifier'] = x
+        if return_activations_for_layer == 'classifier': return x
 
         if return_activations_for_layer is not None and return_activations_for_layer not in activations:
             print(f"Warning: Layer '{return_activations_for_layer}' not found in {self.model_type}ResNet. Available: {list(activations.keys())}")

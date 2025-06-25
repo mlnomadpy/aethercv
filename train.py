@@ -77,8 +77,8 @@ def run_complete_comparison(dataset_name: str = 'cifar10', model_configs_to_run:
     default_model_configs = [
         {'model_class_name': "YatCNN",       'display_name': "YatCNN",       'rng_seed': 0, 'kernel_viz_layer': 'conv1',          'activation_viz_layer': 'conv1'},
         {'model_class_name': "LinearCNN",    'display_name': "LinearCNN",    'rng_seed': 0, 'kernel_viz_layer': 'conv1',          'activation_viz_layer': 'conv1'},
-        {'model_class_name': "YatResNet",    'display_name': "YatResNet",    'rng_seed': 1, 'kernel_viz_layer': 'stem_conv',      'activation_viz_layer': 'stem_conv_output'},
-        {'model_class_name': "LinearResNet", 'display_name': "LinearResNet", 'rng_seed': 1, 'kernel_viz_layer': 'stem_conv',      'activation_viz_layer': 'stem_relu_output'},
+        {'model_class_name': "YatResNet",    'display_name': "YatResNet",    'rng_seed': 1, 'kernel_viz_layer': 'stem_conv',      'activation_viz_layer': 'stem_conv'},
+        {'model_class_name': "LinearResNet", 'display_name': "LinearResNet", 'rng_seed': 1, 'kernel_viz_layer': 'stem_conv',      'activation_viz_layer': 'stem_relu'},
     ]
     
     # Use provided model configs or default to all models
@@ -347,8 +347,8 @@ def get_default_model_configs() -> tp.List[tp.Dict[str, tp.Any]]:
     return [
         {'model_class_name': "YatCNN",       'display_name': "YatCNN",       'rng_seed': 0, 'kernel_viz_layer': 'conv1',          'activation_viz_layer': 'conv1'},
         {'model_class_name': "LinearCNN",    'display_name': "LinearCNN",    'rng_seed': 0, 'kernel_viz_layer': 'conv1',          'activation_viz_layer': 'conv1'},
-        {'model_class_name': "YatResNet",    'display_name': "YatResNet",    'rng_seed': 1, 'kernel_viz_layer': 'stem_conv',      'activation_viz_layer': 'stem_conv_output'},
-        {'model_class_name': "LinearResNet", 'display_name': "LinearResNet", 'rng_seed': 1, 'kernel_viz_layer': 'stem_conv',      'activation_viz_layer': 'stem_relu_output'},
+        {'model_class_name': "YatResNet",    'display_name': "YatResNet",    'rng_seed': 1, 'kernel_viz_layer': 'stem_conv',      'activation_viz_layer': 'stem_conv'},
+        {'model_class_name': "LinearResNet", 'display_name': "LinearResNet", 'rng_seed': 1, 'kernel_viz_layer': 'stem_conv',      'activation_viz_layer': 'stem_relu'},
     ]
 
 def get_cnn_models_only() -> tp.List[tp.Dict[str, tp.Any]]:
@@ -361,22 +361,22 @@ def get_cnn_models_only() -> tp.List[tp.Dict[str, tp.Any]]:
 def get_resnet_models_only() -> tp.List[tp.Dict[str, tp.Any]]:
     """Returns configuration for ResNet models only (YatResNet and LinearResNet)."""
     return [
-        {'model_class_name': "YatResNet",    'display_name': "YatResNet",    'rng_seed': 1, 'kernel_viz_layer': 'stem_conv', 'activation_viz_layer': 'stem_conv_output'},
-        {'model_class_name': "LinearResNet", 'display_name': "LinearResNet", 'rng_seed': 1, 'kernel_viz_layer': 'stem_conv', 'activation_viz_layer': 'stem_relu_output'},
+        {'model_class_name': "YatResNet",    'display_name': "YatResNet",    'rng_seed': 1, 'kernel_viz_layer': 'stem_conv', 'activation_viz_layer': 'stem_conv'},
+        {'model_class_name': "LinearResNet", 'display_name': "LinearResNet", 'rng_seed': 1, 'kernel_viz_layer': 'stem_conv', 'activation_viz_layer': 'stem_relu'},
     ]
 
 def get_yat_models_only() -> tp.List[tp.Dict[str, tp.Any]]:
     """Returns configuration for YAT models only (YatCNN and YatResNet)."""
     return [
         {'model_class_name': "YatCNN",    'display_name': "YatCNN",    'rng_seed': 0, 'kernel_viz_layer': 'conv1',     'activation_viz_layer': 'conv1'},
-        {'model_class_name': "YatResNet", 'display_name': "YatResNet", 'rng_seed': 1, 'kernel_viz_layer': 'stem_conv', 'activation_viz_layer': 'stem_conv_output'},
+        {'model_class_name': "YatResNet", 'display_name': "YatResNet", 'rng_seed': 1, 'kernel_viz_layer': 'stem_conv', 'activation_viz_layer': 'stem_conv'},
     ]
 
 def get_linear_models_only() -> tp.List[tp.Dict[str, tp.Any]]:
     """Returns configuration for Linear models only (LinearCNN and LinearResNet)."""
     return [
         {'model_class_name': "LinearCNN",    'display_name': "LinearCNN",    'rng_seed': 0, 'kernel_viz_layer': 'conv1',     'activation_viz_layer': 'conv1'},
-        {'model_class_name': "LinearResNet", 'display_name': "LinearResNet", 'rng_seed': 1, 'kernel_viz_layer': 'stem_conv', 'activation_viz_layer': 'stem_relu_output'},
+        {'model_class_name': "LinearResNet", 'display_name': "LinearResNet", 'rng_seed': 1, 'kernel_viz_layer': 'stem_conv', 'activation_viz_layer': 'stem_relu'},
     ]
 
 # ===== QUICK START FUNCTIONS =====

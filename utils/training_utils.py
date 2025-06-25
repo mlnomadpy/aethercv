@@ -12,9 +12,8 @@ from utils.config import (
     DATASET_CONFIGS, GLOBAL_DEFAULT_NUM_EPOCHS, GLOBAL_DEFAULT_EVAL_EVERY, GLOBAL_DEFAULT_BATCH_SIZE, mesh
 )
 # Import model classes by their names to avoid circular dependencies if utils are imported by models
-# This requires models to be available in the python path, e.g. via aethercv.models.cnn or aethercv.models.resnet
-from models.cnn import YatCNN, LinearCNN
-from models.resnet import YatResNet, LinearResNet
+# Updated to use the new modular structure with factory function
+from models import create_model
 
 def loss_fn(model, batch):
   # batch['image'] is already sharded if called from train_step/eval_step
@@ -90,19 +89,13 @@ def _train_model_loop(
         current_eval_every = config['eval_every']
         current_batch_size = config['batch_size']
 
-    # Instantiate model based on class name
-    if model_class_name == "YatCNN":
-        model_class_constructor = YatCNN
-    elif model_class_name == "LinearCNN":
-        model_class_constructor = LinearCNN
-    elif model_class_name == "YatResNet":
-        model_class_constructor = YatResNet
-    elif model_class_name == "LinearResNet":
-        model_class_constructor = LinearResNet
-    else:
-        raise ValueError(f"Unknown model_class_name: {model_class_name}")
-
-    model = model_class_constructor(num_classes=num_classes, input_channels=input_channels, rngs=nnx.Rngs(rng_seed))
+    # Instantiate model using factory function
+    model = create_model(
+        model_class_name, 
+        num_classes=num_classes, 
+        input_channels=input_channels, 
+        rngs=nnx.Rngs(rng_seed)
+    )
     optimizer = nnx.Optimizer(model, optimizer_constructor(learning_rate))
 
     metrics_computer = nnx.MultiMetric(
