@@ -1,0 +1,30 @@
+# Default configuration for single YatCNN training
+experiment:
+  name: "yat_cnn_experiment"
+  description: "Train only YatCNN model with standard analysis"
+  
+dataset:
+  name: "cifar10"
+  num_epochs: 5
+  eval_every: 200
+  batch_size: 64  # Will be multiplied by device count
+  
+models:
+  - model_class_name: "YatCNN"
+    display_name: "YatCNN"
+    rng_seed: 0
+    kernel_viz_layer: "conv1"
+    activation_viz_layer: "conv1"
+
+training:
+  learning_rate: 0.007
+  optimizer: "adamw"  # or "adam", "sgd"
+  
+analysis:
+  mode: "standard"  # basic, standard, advanced, comprehensive
+  save_visualizations: true
+  
+output:
+  save_dir: null  # If null, auto-generates timestamped directory
+  save_models: true
+  save_metrics: true

@@ -1,0 +1,35 @@
+# Configuration for ResNet models comparison
+experiment:
+  name: "resnet_comparison"
+  description: "Compare YatResNet vs LinearResNet models"
+  
+dataset:
+  name: "cifar100"
+  num_epochs: 15
+  eval_every: 150
+  batch_size: 32
+  
+models:
+  - model_class_name: "YatResNet"
+    display_name: "YatResNet"
+    rng_seed: 1
+    kernel_viz_layer: "stem_conv"
+    activation_viz_layer: "stem_conv"
+  - model_class_name: "LinearResNet"
+    display_name: "LinearResNet"
+    rng_seed: 1
+    kernel_viz_layer: "stem_conv"
+    activation_viz_layer: "stem_relu"
+
+training:
+  learning_rate: 0.003
+  optimizer: "adamw"
+  
+analysis:
+  mode: "standard"
+  save_visualizations: true
+  
+output:
+  save_dir: null
+  save_models: true
+  save_metrics: true

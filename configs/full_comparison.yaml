@@ -1,0 +1,45 @@
+# Configuration for comparing all models
+experiment:
+  name: "full_model_comparison"
+  description: "Compare all 4 models with comprehensive analysis"
+  
+dataset:
+  name: "cifar10"
+  num_epochs: 10
+  eval_every: 200
+  batch_size: 64
+  
+models:
+  - model_class_name: "YatCNN"
+    display_name: "YatCNN"
+    rng_seed: 0
+    kernel_viz_layer: "conv1"
+    activation_viz_layer: "conv1"
+  - model_class_name: "LinearCNN"
+    display_name: "LinearCNN"
+    rng_seed: 0
+    kernel_viz_layer: "conv1"
+    activation_viz_layer: "conv1"
+  - model_class_name: "YatResNet"
+    display_name: "YatResNet"
+    rng_seed: 1
+    kernel_viz_layer: "stem_conv"
+    activation_viz_layer: "stem_conv"
+  - model_class_name: "LinearResNet"
+    display_name: "LinearResNet"
+    rng_seed: 1
+    kernel_viz_layer: "stem_conv"
+    activation_viz_layer: "stem_relu"
+
+training:
+  learning_rate: 0.007
+  optimizer: "adamw"
+  
+analysis:
+  mode: "comprehensive"
+  save_visualizations: true
+  
+output:
+  save_dir: null
+  save_models: true
+  save_metrics: true

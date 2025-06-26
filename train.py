@@ -1,6 +1,10 @@
 import typing as tp
 from functools import partial
 import logging
+import argparse
+import os
+import sys
+from pathlib import Path
 
 import tensorflow_datasets as tfds
 import tensorflow as tf
@@ -13,6 +17,7 @@ logging.getLogger('tensorflow').setLevel(logging.ERROR)
 
 # Import from new modularized components
 from utils.config import DATASET_CONFIGS, mesh # mesh is initialized in config.py
+from utils.yaml_config import ConfigLoader, AetherCVConfig, config_to_legacy_format
 from utils.training_utils import _train_model_loop
 from utils.analysis_utils import (
     compare_training_curves,
@@ -379,6 +384,137 @@ def get_linear_models_only() -> tp.List[tp.Dict[str, tp.Any]]:
         {'model_class_name': "LinearResNet", 'display_name': "LinearResNet", 'rng_seed': 1, 'kernel_viz_layer': 'stem_conv', 'activation_viz_layer': 'stem_relu'},
     ]
 
+# ===== INDIVIDUAL MODEL CONFIGURATIONS =====
+def get_yat_cnn_only() -> tp.List[tp.Dict[str, tp.Any]]:
+    """Returns configuration for YatCNN model only."""
+    return [
+        {'model_class_name': "YatCNN", 'display_name': "YatCNN", 'rng_seed': 0, 'kernel_viz_layer': 'conv1', 'activation_viz_layer': 'conv1'}
+    ]
+
+def get_linear_cnn_only() -> tp.List[tp.Dict[str, tp.Any]]:
+    """Returns configuration for LinearCNN model only."""
+    return [
+        {'model_class_name': "LinearCNN", 'display_name': "LinearCNN", 'rng_seed': 0, 'kernel_viz_layer': 'conv1', 'activation_viz_layer': 'conv1'}
+    ]
+
+def get_yat_resnet_only() -> tp.List[tp.Dict[str, tp.Any]]:
+    """Returns configuration for YatResNet model only."""
+    return [
+        {'model_class_name': "YatResNet", 'display_name': "YatResNet", 'rng_seed': 1, 'kernel_viz_layer': 'stem_conv', 'activation_viz_layer': 'stem_conv'}
+    ]
+
+def get_linear_resnet_only() -> tp.List[tp.Dict[str, tp.Any]]:
+    """Returns configuration for LinearResNet model only."""
+    return [
+        {'model_class_name': "LinearResNet", 'display_name': "LinearResNet", 'rng_seed': 1, 'kernel_viz_layer': 'stem_conv', 'activation_viz_layer': 'stem_relu'}
+    ]
+
+def get_single_model_config(model_name: str) -> tp.List[tp.Dict[str, tp.Any]]:
+    """
+    Get configuration for a single model by name.
+    
+    Args:
+        model_name: One of 'yat_cnn', 'linear_cnn', 'yat_resnet', 'linear_resnet'
+        
+    Returns:
+        List containing single model configuration
+        
+    Raises:
+        ValueError: If model_name is not recognized
+    """
+    model_map = {
+        'yat_cnn': get_yat_cnn_only,
+        'linear_cnn': get_linear_cnn_only,
+        'yat_resnet': get_yat_resnet_only,
+        'linear_resnet': get_linear_resnet_only,
+    }
+    
+    if model_name.lower() not in model_map:
+        available_models = ', '.join(model_map.keys())
+        raise ValueError(f"Unknown model name '{model_name}'. Available models: {available_models}")
+    
+    return model_map[model_name.lower()]()
+
+# ===== COMMAND LINE ARGUMENT PARSING =====
+def parse_arguments():
+    """Parse command line arguments for training configuration."""
+    parser = argparse.ArgumentParser(description='Train and compare neural network models')
+    
+    # Configuration file option
+    parser.add_argument('--config', type=str, 
+                       help='YAML configuration file to use (from configs/ directory, without .yaml extension)')
+    
+    parser.add_argument('--list-configs', action='store_true',
+                       help='List all available configuration files and exit')
+    
+    # Legacy command-line options (used when --config is not specified)
+    parser.add_argument('--dataset', type=str, default='stl10',
+                       help='Dataset to use for training (default: stl10)')
+    
+    parser.add_argument('--model', type=str, choices=['yat_cnn', 'linear_cnn', 'yat_resnet', 'linear_resnet'], 
+                       help='Train only a specific model instead of comparing multiple models')
+    
+    parser.add_argument('--model-group', type=str, 
+                       choices=['all', 'cnn', 'resnet', 'yat', 'linear'],
+                       default='cnn',
+                       help='Group of models to train (default: cnn). Ignored if --model is specified.')
+    
+    parser.add_argument('--analysis-mode', type=str, 
+                       choices=['basic', 'standard', 'advanced', 'comprehensive'],
+                       default='standard',
+                       help='Level of analysis to perform (default: standard)')
+    
+    return parser.parse_args()
+
+def run_experiment_from_config(config: AetherCVConfig) -> tp.Dict[str, tp.Any]:
+    """
+    Run an experiment based on YAML configuration.
+    
+    Args:
+        config: AetherCV configuration object
+        
+    Returns:
+        Dictionary containing experiment results
+    """
+    print("\\n" + "="*80)
+    print(f"🧪 EXPERIMENT: {config.experiment.name}")
+    print(f"📝 DESCRIPTION: {config.experiment.description}")
+    print("="*80)
+    
+    # Update DATASET_CONFIGS with values from YAML config if needed
+    dataset_name = config.dataset.name
+    if dataset_name in DATASET_CONFIGS:
+        # Override specific values from config
+        DATASET_CONFIGS[dataset_name]['num_epochs'] = config.dataset.num_epochs
+        DATASET_CONFIGS[dataset_name]['eval_every'] = config.dataset.eval_every
+        # Note: batch_size will be handled in run_complete_comparison
+    
+    # Convert models to legacy format
+    model_configs = config_to_legacy_format(config)
+    
+    print(f"📊 Dataset: {dataset_name}")
+    print(f"📈 Models: {[model.display_name for model in config.models]}")
+    print(f"🔍 Analysis Mode: {config.analysis.mode}")
+    print(f"🎯 Learning Rate: {config.training.learning_rate}")
+    print(f"⚙️  Optimizer: {config.training.optimizer}")
+    print(f"🔄 Epochs: {config.dataset.num_epochs}")
+    print(f"📏 Batch Size: {config.dataset.batch_size}")
+    
+    # Create output directory if specified
+    if config.output.save_dir:
+        output_dir = Path(config.output.save_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        print(f"📁 Output Directory: {output_dir.absolute()}")
+    
+    # Run the experiment
+    results = run_complete_comparison(
+        dataset_name=dataset_name,
+        model_configs_to_run=model_configs,
+        analysis_mode=config.analysis.mode
+    )
+    
+    return results
+
 # ===== QUICK START FUNCTIONS =====
 def save_metrics_example():
     print("\\\\n💾 HOW TO SAVE METRICS DURING TRAINING:"); print("-"*50)
@@ -394,41 +530,134 @@ def save_metrics_example():
 ''')
 
 if __name__ == '__main__':
-    print("\\n" + "="*80 + "\\n" + "="*80)
-    print("\\n🚀 TO RUN THE COMPLETE COMPARISON (e.g., for CIFAR-10):")
-    print("   This will compare all 4 models by default: YatCNN vs LinearCNN, and YatResNet vs LinearResNet.")
-    print("   results = run_complete_comparison(dataset_name='cifar10')")
-    print("\\n🎯 TO RUN WITH SPECIFIC MODEL GROUPS (using helper functions):")
-    print("   # Compare only CNN models:")
-    print("   results_cnn = run_complete_comparison(dataset_name='cifar10', model_configs_to_run=get_cnn_models_only())")
-    print("\\n   # Compare only ResNet models:")
-    print("   results_resnet = run_complete_comparison(dataset_name='cifar10', model_configs_to_run=get_resnet_models_only())")
-    print("\\n   # Compare only YAT models:")
-    print("   results_yat = run_complete_comparison(dataset_name='cifar10', model_configs_to_run=get_yat_models_only())")
-    print("\\n   # Compare only Linear models:")
-    print("   results_linear = run_complete_comparison(dataset_name='cifar10', model_configs_to_run=get_linear_models_only())")
-    print("\\n🔧 TO CREATE CUSTOM MODEL CONFIGURATIONS:")
-    print("   # Single model:")
-    print("   single_model = [{'model_class_name': 'YatCNN', 'display_name': 'YatCNN', 'rng_seed': 0, 'kernel_viz_layer': 'conv1', 'activation_viz_layer': 'conv1'}]")
-    print("   results_single = run_complete_comparison(dataset_name='cifar10', model_configs_to_run=single_model)")
-    print("\\n   # Custom mix:")
-    print("   custom_models = get_yat_models_only() + [{'model_class_name': 'LinearCNN', 'display_name': 'LinearCNN', 'rng_seed': 0, 'kernel_viz_layer': 'conv1', 'activation_viz_layer': 'conv1'}]")
-    print("   results_custom = run_complete_comparison(dataset_name='cifar10', model_configs_to_run=custom_models)")
-    print("\\n   Other dataset examples:")
-    print("   # results_stl10 = run_complete_comparison(dataset_name='stl10', model_configs_to_run=get_cnn_models_only())")
-    print("   # results_eurosat = run_complete_comparison(dataset_name='eurosat/rgb', model_configs_to_run=get_yat_models_only())")
-    print("\\n💾 TO SEE HOW TO SAVE METRICS:")
-    print("   save_metrics_example()")
-    print("\\n📖 The comparison functions are ready to use with collected metrics histories and models.")
-    print("="*80)    # Example: Run complete comparison for a chosen dataset
-    # print("\\nStarting complete comparison for CIFAR-10...")
-    # results = run_complete_comparison(dataset_name='cifar10')    # Default to STL10 with only CNN models for faster demonstration (using standard analysis)
-    print("\\nStarting CNN-only comparison for STL10 with standard analysis...")
-    results = run_complete_comparison(dataset_name='stl10', model_configs_to_run=get_cnn_models_only(), analysis_mode='standard')
-
-    print("\\nAll models trained and compared. Access results dictionary for details:")
-    if results:
-        for model_name_res, data_res in results.items(): # Renamed to avoid conflict
-            print(f"  - Results for {model_name_res} are available. History keys: {list(data_res['history'].keys())}")
+    # Parse command line arguments
+    args = parse_arguments()
+    
+    # Initialize config loader
+    config_loader = ConfigLoader()
+    
+    # Handle --list-configs option
+    if args.list_configs:
+        available_configs = config_loader.list_available_configs()
+        print("\\n📋 Available Configuration Files:")
+        print("="*50)
+        if available_configs:
+            for config_name in available_configs:
+                try:
+                    config = config_loader.load_config(config_name)
+                    print(f"  📄 {config_name}")
+                    print(f"     ├─ Name: {config.experiment.name}")
+                    print(f"     ├─ Dataset: {config.dataset.name}")
+                    print(f"     ├─ Models: {[m.display_name for m in config.models]}")
+                    print(f"     └─ Analysis: {config.analysis.mode}")
+                except Exception as e:
+                    print(f"  ❌ {config_name} (Error: {str(e)})")
+        else:
+            print("  No configuration files found in configs/ directory")
+        print("\\n💡 Usage: python train.py --config <config_name>")
+        sys.exit(0)
+    
+    # Check if using YAML configuration
+    if args.config:
+        print("\\n" + "="*80)
+        print(f"🔧 USING YAML CONFIGURATION: {args.config}")
+        print("="*80)
+        
+        try:
+            config = config_loader.load_config(args.config)
+            config_loader.validate_config(config)
+            
+            # Run experiment from config
+            results = run_experiment_from_config(config)
+            
+            print("\\n🎉 YAML-configured experiment completed successfully!")
+            print("\\n📊 Results Summary:")
+            if results:
+                for model_name, data in results.items():
+                    print(f"  ✅ {model_name}: Training completed. History keys: {list(data['history'].keys())}")
+            else:
+                print("  ❌ No results returned from experiment.")
+                
+        except Exception as e:
+            print(f"\\n❌ Error running experiment with config '{args.config}': {str(e)}")
+            print("\\n💡 Use --list-configs to see available configurations")
+            sys.exit(1)
+    
     else:
-        print("  - No results returned from run_complete_comparison.")
+        # Use legacy command-line arguments
+        print("\\n" + "="*80 + "\\n" + "="*80)
+        print(f"🚀 AETHERCV TRAINING PIPELINE (Legacy Mode)")
+        print(f"📊 Dataset: {args.dataset}")
+        print(f"🔍 Analysis Mode: {args.analysis_mode}")
+        
+        # Determine which models to run
+        if args.model:
+            # Single model specified
+            print(f"🎯 Training single model: {args.model.upper()}")
+            model_configs = get_single_model_config(args.model)
+            experiment_type = f"Single Model ({args.model.upper()})"
+        else:
+            # Model group specified
+            print(f"🎯 Training model group: {args.model_group.upper()}")
+            model_group_map = {
+                'all': get_default_model_configs,
+                'cnn': get_cnn_models_only,
+                'resnet': get_resnet_models_only,
+                'yat': get_yat_models_only,
+                'linear': get_linear_models_only,
+            }
+            model_configs = model_group_map[args.model_group]()
+            experiment_type = f"Model Group ({args.model_group.upper()})"
+        
+        print(f"🔧 Experiment Type: {experiment_type}")
+        print(f"📈 Models to train: {[config['display_name'] for config in model_configs]}")
+        print("="*80)
+        
+        # Run the experiment
+        print(f"\\n� Starting {experiment_type} experiment on {args.dataset} with {args.analysis_mode} analysis...")
+        results = run_complete_comparison(
+            dataset_name=args.dataset, 
+            model_configs_to_run=model_configs, 
+            analysis_mode=args.analysis_mode
+        )
+
+        print("\\n🎉 Legacy experiment completed successfully!")
+        print("\\n📊 Results Summary:")
+        if results:
+            for model_name_res, data_res in results.items():
+                print(f"  ✅ {model_name_res}: Training completed. History keys: {list(data_res['history'].keys())}")
+        else:
+            print("  ❌ No results returned from run_complete_comparison.")
+    
+    # Display usage examples
+    print("\\n" + "="*80)
+    print("� USAGE EXAMPLES:")
+    print("="*80)
+    print("\\n🔧 YAML Configuration Mode (Recommended):")
+    print("   python train.py --config single_yat_cnn")
+    print("   python train.py --config full_comparison")  
+    print("   python train.py --config cnn_stl10")
+    print("   python train.py --config resnet_comparison")
+    print("   python train.py --config eurosat_analysis")
+    print("\\n   # List all available configs:")
+    print("   python train.py --list-configs")
+    
+    print("\\n� Legacy Command-Line Mode:")
+    print("   # Train single model:")
+    print("   python train.py --model yat_cnn --dataset cifar10 --analysis-mode basic")
+    print("   python train.py --model linear_resnet --dataset stl10 --analysis-mode standard")
+    print("\\n   # Train model groups:")
+    print("   python train.py --model-group cnn --dataset cifar10 --analysis-mode advanced")
+    print("   python train.py --model-group all --dataset eurosat/rgb --analysis-mode comprehensive")
+    
+    print("\\n🔧 PROGRAMMATIC API:")
+    print("   # Load and run from config:")
+    print("   from utils.yaml_config import ConfigLoader")
+    print("   loader = ConfigLoader()")
+    print("   config = loader.load_config('single_yat_cnn')")
+    print("   results = run_experiment_from_config(config)")
+    print("\\n   # Legacy API:")
+    print("   results = run_complete_comparison(dataset_name='cifar10', model_configs_to_run=get_yat_cnn_only())")
+    
+    print("\\n📁 Check the generated visualization directory for detailed analysis plots and reports.")
+    print("="*80)

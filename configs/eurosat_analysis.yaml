@@ -1,0 +1,35 @@
+# Configuration for satellite imagery analysis with EuroSAT
+experiment:
+  name: "eurosat_analysis"
+  description: "Satellite image classification with EuroSAT dataset"
+  
+dataset:
+  name: "eurosat/rgb"
+  num_epochs: 25
+  eval_every: 50
+  batch_size: 32
+  
+models:
+  - model_class_name: "YatCNN"
+    display_name: "YatCNN"
+    rng_seed: 0
+    kernel_viz_layer: "conv1"
+    activation_viz_layer: "conv1"
+  - model_class_name: "YatResNet"
+    display_name: "YatResNet"
+    rng_seed: 1
+    kernel_viz_layer: "stem_conv"
+    activation_viz_layer: "stem_conv"
+
+training:
+  learning_rate: 0.001
+  optimizer: "adamw"
+  
+analysis:
+  mode: "advanced"
+  save_visualizations: true
+  
+output:
+  save_dir: "experiments/eurosat_rgb"
+  save_models: true
+  save_metrics: true

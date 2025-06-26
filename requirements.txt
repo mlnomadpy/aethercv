@@ -1,0 +1,23 @@
+# AetherCV Requirements
+# Core deep learning framework
+jax
+flax
+optax
+
+# Data handling
+tensorflow
+tensorflow-datasets
+numpy
+
+# Configuration management
+PyYAML
+
+# Visualization and analysis
+matplotlib
+seaborn
+plotly
+scikit-learn
+
+# Utilities
+tqdm
+Pillow
