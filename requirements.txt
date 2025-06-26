@@ -11,6 +11,7 @@ numpy
 
 # Configuration management
 PyYAML
+wandb
 
 # Visualization and analysis
 matplotlib

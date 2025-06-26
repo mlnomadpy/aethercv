@@ -43,3 +43,14 @@ output:
   save_dir: null
   save_models: true
   save_metrics: true
+
+wandb:
+  enabled: true
+  project_name: "aethercv-full-comparison"
+  entity: null  # Set to your WandB username or team name
+  tags: ["full-comparison", "cifar10", "yat-vs-linear", "comprehensive"]
+  notes: "Complete comparison of all 4 AetherCV models with comprehensive analysis"
+  log_frequency: 10
+  log_gradients: true
+  log_parameters: true
+  log_images: true

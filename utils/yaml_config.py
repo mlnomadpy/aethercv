@@ -59,6 +59,20 @@ class OutputConfig:
 
 
 @dataclass
+class WandBConfig:
+    """Configuration for Weights & Biases logging."""
+    enabled: bool = True
+    project_name: str = "aethercv"
+    entity: tp.Optional[str] = None
+    tags: tp.List[str] = field(default_factory=list)
+    notes: str = ""
+    log_frequency: int = 10
+    log_gradients: bool = True
+    log_parameters: bool = True
+    log_images: bool = True
+
+
+@dataclass
 class AetherCVConfig:
     """Complete configuration for AetherCV experiments."""
     experiment: ExperimentConfig = field(default_factory=ExperimentConfig)
@@ -67,6 +81,7 @@ class AetherCVConfig:
     training: TrainingConfig = field(default_factory=TrainingConfig)
     analysis: AnalysisConfig = field(default_factory=AnalysisConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
+    wandb: WandBConfig = field(default_factory=WandBConfig)
 
 
 class ConfigLoader:
@@ -189,13 +204,28 @@ class ConfigLoader:
                 save_metrics=output_data.get('save_metrics', True)
             )
             
+            # Parse WandB config
+            wandb_data = raw_config.get('wandb', {})
+            wandb = WandBConfig(
+                enabled=wandb_data.get('enabled', True),
+                project_name=wandb_data.get('project_name', 'aethercv'),
+                entity=wandb_data.get('entity'),
+                tags=wandb_data.get('tags', []),
+                notes=wandb_data.get('notes', ''),
+                log_frequency=wandb_data.get('log_frequency', 10),
+                log_gradients=wandb_data.get('log_gradients', True),
+                log_parameters=wandb_data.get('log_parameters', True),
+                log_images=wandb_data.get('log_images', True)
+            )
+            
             return AetherCVConfig(
                 experiment=experiment,
                 dataset=dataset,
                 models=models,
                 training=training,
                 analysis=analysis,
-                output=output
+                output=output,
+                wandb=wandb
             )
             
         except Exception as e:
@@ -276,6 +306,17 @@ def create_default_config() -> AetherCVConfig:
             save_dir=None,
             save_models=True,
             save_metrics=True
+        ),
+        wandb=WandBConfig(
+            enabled=True,
+            project_name="aethercv",
+            entity=None,
+            tags=[],
+            notes="",
+            log_frequency=10,
+            log_gradients=True,
+            log_parameters=True,
+            log_images=True
         )
     )
 

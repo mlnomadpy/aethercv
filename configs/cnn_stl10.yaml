@@ -33,3 +33,14 @@ output:
   save_dir: "experiments/cnn_stl10"
   save_models: true
   save_metrics: true
+
+wandb:
+  enabled: true
+  project_name: "aethercv-cnn-comparison"
+  entity: null  # Set to your WandB username or team
+  tags: ["cnn", "stl10", "comparison"]
+  notes: "CNN models comparison on STL10 dataset"
+  log_frequency: 10
+  log_gradients: true
+  log_parameters: true
+  log_images: true

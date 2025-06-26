@@ -33,3 +33,14 @@ output:
   save_dir: null
   save_models: true
   save_metrics: true
+
+wandb:
+  enabled: true
+  project_name: "aethercv-resnet-comparison"
+  entity: null  # Set to your WandB username or team
+  tags: ["resnet", "cifar100", "yat-vs-linear"]
+  notes: "YatResNet vs LinearResNet comparison on CIFAR-100"
+  log_frequency: 15
+  log_gradients: true
+  log_parameters: true
+  log_images: false

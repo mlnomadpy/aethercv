@@ -33,3 +33,14 @@ output:
   save_dir: "experiments/eurosat_rgb"
   save_models: true
   save_metrics: true
+
+wandb:
+  enabled: true
+  project_name: "aethercv-eurosat-analysis"
+  entity: null  # Set to your WandB username or team name
+  tags: ["eurosat", "satellite-imagery", "yat-models", "rgb"]
+  notes: "Satellite image classification analysis using EuroSAT RGB dataset"
+  log_frequency: 5
+  log_gradients: true
+  log_parameters: true
+  log_images: true
